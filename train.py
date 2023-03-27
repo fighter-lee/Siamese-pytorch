@@ -49,7 +49,10 @@ if __name__ == "__main__":
     #----------------------------------------------------#
     #   输入图像的大小，默认为105,105,3
     #----------------------------------------------------#
-    input_shape     = [105, 105]
+    input_shape     = [96, 96]
+
+    use_module = "vgg16"
+    # use_module = "resnet50"
     #----------------------------------------------------#
     #   当训练Omniglot数据集时设置为False
     #   当训练自己的数据集时设置为True
@@ -57,7 +60,7 @@ if __name__ == "__main__":
     #   训练自己的数据和Omniglot数据格式不一样。
     #   详情可看README.md
     #----------------------------------------------------#
-    train_own_data  = False
+    train_own_data  = True
     #-------------------------------#
     #   用于指定是否使用VGG预训练权重
     #   有两种获取方式
@@ -109,7 +112,7 @@ if __name__ == "__main__":
     #   batch_size      每次输入的图片数量
     #------------------------------------------------------#
     Init_Epoch          = 0
-    Epoch               = 100
+    Epoch               = 50
     batch_size          = 32
     
     #------------------------------------------------------------------#
@@ -173,10 +176,10 @@ if __name__ == "__main__":
     if pretrained:
         if distributed:
             if local_rank == 0:
-                download_weights("vgg16")  
+                download_weights(use_module)
             dist.barrier()
         else:
-            download_weights("vgg16")  
+            download_weights(use_module)
 
     model = Siamese(input_shape, pretrained)
     if model_path != '':
