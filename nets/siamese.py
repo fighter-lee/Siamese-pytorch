@@ -5,6 +5,7 @@ from nets.ResNet import resnet50
 from nets.vgg import VGG16
 
 
+USE_RESNET=True
 def get_img_output_length(width, height):
     def get_output_length(input_length):
         # input_length += 6
@@ -17,7 +18,7 @@ def get_img_output_length(width, height):
     return get_output_length(width) * get_output_length(height) 
     
 class Siamese(nn.Module):
-    def __init__(self, input_shape, pretrained=False, useResnet=True):
+    def __init__(self, input_shape, pretrained=False, useResnet=USE_RESNET):
         super(Siamese, self).__init__()
         self.useResnet = useResnet
         if useResnet:
@@ -37,7 +38,7 @@ class Siamese(nn.Module):
 
     def forward(self, x):
         x1, x2 = x
-        if self.useResnet:
+        if USE_RESNET:
             # ------------------------------------------#
             #   我们将两个输入传入到主干特征提取网络
             # ------------------------------------------#

@@ -8,6 +8,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
+from nets.ContrastiveLoss import ContrastiveLoss
 from nets.siamese import Siamese
 from utils.callbacks import LossHistory
 from utils.dataloader import SiameseDataset, dataset_collate
@@ -131,7 +132,7 @@ if __name__ == "__main__":
     #                   当使用Adam优化器时建议设置  Init_lr=1e-3
     #                   当使用SGD优化器时建议设置   Init_lr=1e-2
     #   momentum        优化器内部使用到的momentum参数
-    #   weight_decay    权值衰减，可防止过拟合
+    #   weight_decay    ，可防止过拟合
     #                   adam会导致weight_decay错误，使用adam时建议设置为0。
     #------------------------------------------------------------------#
     optimizer_type      = "sgd"
@@ -215,6 +216,7 @@ if __name__ == "__main__":
     #   获得损失函数
     #----------------------#
     loss = nn.BCEWithLogitsLoss()
+    # loss = ContrastiveLoss()
     #----------------------#
     #   记录Loss
     #----------------------#
