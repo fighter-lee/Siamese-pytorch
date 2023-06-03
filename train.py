@@ -15,8 +15,12 @@ from utils.dataloader import SiameseDataset, dataset_collate
 from utils.utils import (download_weights, get_lr_scheduler, load_dataset,
                          set_optimizer_lr, show_config)
 from utils.utils_fit import fit_one_epoch
+import os
 
 if __name__ == "__main__":
+
+
+    os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
     #----------------------------------------------------#
     #   是否使用Cuda
     #   没有GPU可以设置成False
@@ -215,8 +219,8 @@ if __name__ == "__main__":
     #----------------------#
     #   获得损失函数
     #----------------------#
-    loss = nn.BCEWithLogitsLoss()
-    # loss = ContrastiveLoss()
+    # loss = nn.BCEWithLogitsLoss()
+    loss = ContrastiveLoss()
     #----------------------#
     #   记录Loss
     #----------------------#

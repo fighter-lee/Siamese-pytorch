@@ -2,7 +2,10 @@ import os
 
 import torch
 import torch.nn as nn
+from matplotlib import pyplot as plt
 from tqdm import tqdm
+import numpy as np
+import torch.nn.functional as F
 
 from .utils import get_lr
 
@@ -18,47 +21,47 @@ def fit_one_epoch(model_train, model, loss, loss_history, optimizer, epoch, epoc
         print('Start Train')
         pbar = tqdm(total=epoch_step,desc=f'Epoch {epoch + 1}/{Epoch}',postfix=dict,mininterval=0.3)
     model_train.train()
-    for iteration, batch in enumerate(gen):
+
+    for iteration,  (img, label) in enumerate(gen):
         if iteration >= epoch_step:
             break
-        images, targets = batch[0], batch[1]
         with torch.no_grad():
             if cuda:
-                images  = images.cuda(local_rank)
-                targets = targets.cuda(local_rank)
+                img  = img.cuda(local_rank)
+                label = label.cuda(local_rank)
+        img0, img1 = img
 
         #----------------------#
         #   清零梯度
         #----------------------#
         optimizer.zero_grad()
         if not fp16:
-            outputs = model_train(images)
-            output  = loss(outputs, targets)
+            output1, output2 = model_train(img0, img1)
+            loss_contrastive  = loss(output1, output2, label)
 
-            output.backward()
+            loss_contrastive.backward()
             optimizer.step()
         else:
             from torch.cuda.amp import autocast
             with autocast():
-                outputs = model_train(images)
-                output  = loss(outputs, targets)
+                output1, output2 = model_train(img0, img1)
+                loss_contrastive = loss(output1, output2, label)
             #----------------------#
             #   反向传播
             #----------------------#
-            scaler.scale(output).backward()
+            scaler.scale(loss_contrastive).backward()
             scaler.step(optimizer)
             scaler.update()
 
-        with torch.no_grad():
-            equal       = torch.eq(torch.round(nn.Sigmoid()(outputs)), targets)
-            accuracy    = torch.mean(equal.float())
+        # with torch.no_grad():
+        #     accuracy = calculate_accuracy(output1, output2, label)
 
-        total_loss      += output.item()
-        total_accuracy  += accuracy.item()
+        total_loss      += loss_contrastive.item()
+        # total_accuracy  += accuracy.item()
 
         if local_rank == 0:
             pbar.set_postfix(**{'total_loss': total_loss / (iteration + 1), 
-                                'acc'       : total_accuracy / (iteration + 1),
+                                # 'acc'       : total_accuracy / (iteration + 1),
                                 'lr'        : get_lr(optimizer)})
             pbar.update(1)
     if local_rank == 0:
@@ -67,29 +70,31 @@ def fit_one_epoch(model_train, model, loss, loss_history, optimizer, epoch, epoc
         print('Start Validation')
         pbar = tqdm(total=epoch_step_val, desc=f'Epoch {epoch + 1}/{Epoch}',postfix=dict,mininterval=0.3)
     model_train.eval()
-    for iteration, batch in enumerate(genval):
+    for iteration,  (img, label) in enumerate(genval):
         if iteration >= epoch_step_val:
             break
-        
-        images, targets = batch[0], batch[1]
+
         with torch.no_grad():
             if cuda:
-                images  = images.cuda(local_rank)
-                targets = targets.cuda(local_rank)
-                
-            optimizer.zero_grad()
-            outputs = model_train(images)
-            output  = loss(outputs, targets)
+                img  = img.cuda(local_rank)
+                label = label.cuda(local_rank)
 
-            equal       = torch.eq(torch.round(nn.Sigmoid()(outputs)), targets)
-            accuracy    = torch.mean(equal.float())
+            img0, img1 = img
+
+            optimizer.zero_grad()
+            output1, output2 = model_train(img0, img1)
+            output  = loss(output1, output2, label)
+
+            # equal       = torch.eq(torch.round(nn.Sigmoid()(outputs)), targetsdddd)
+            # accuracy    = torch.mean(equal.float())
 
         val_loss            += output.item()
-        val_total_accuracy  += accuracy.item()
+        # val_total_accuracy  += accuracy.item()
 
         if local_rank == 0:
             pbar.set_postfix(**{'val_loss'  : val_loss / (iteration + 1), 
-                                'acc'       : val_total_accuracy / (iteration + 1)})
+                                # 'acc'       : val_total_accuracy / (iteration + 1)
+                                })
             pbar.update(1)
                 
     if local_rank == 0:
@@ -110,3 +115,10 @@ def fit_one_epoch(model_train, model, loss, loss_history, optimizer, epoch, epoc
             torch.save(model.state_dict(), os.path.join(save_dir, "best_epoch_weights.pth"))
             
         torch.save(model.state_dict(), os.path.join(save_dir, "last_epoch_weights.pth"))
+
+def calculate_accuracy(output1, output2, label, threshold=0.5):
+    euclidean_distance = F.pairwise_distance(output1, output2)
+    predictions = (euclidean_distance < threshold).float()  # 阈值判定
+    correct = (predictions == label).float().sum()  # 计算匹配成功的样本对数量
+    accuracy = correct / label.shape[0]  # 计算成功率百分比
+    return accuracy  # 返回成功率百分比（转换为标量）
