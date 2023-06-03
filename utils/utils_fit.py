@@ -53,8 +53,9 @@ def fit_one_epoch(model_train, model, loss, loss_history, optimizer, epoch, epoc
             scaler.step(optimizer)
             scaler.update()
 
-        # with torch.no_grad():
-        #     accuracy = calculate_accuracy(output1, output2, label)
+        with torch.no_grad():
+            predict = (F.pairwise_distance(output1, output2, p=2) < 0.5).long()
+            # accuracy = (predict == label).sum()
 
         total_loss      += loss_contrastive.item()
         # total_accuracy  += accuracy.item()

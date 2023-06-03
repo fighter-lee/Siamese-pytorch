@@ -6,6 +6,7 @@ from PIL import Image
 
 from nets.siamese import Siamese as siamese
 from utils.utils import letterbox_image, preprocess_input, cvtColor, show_config
+import torch.nn.functional as F
 
 
 #---------------------------------------------------#
@@ -122,14 +123,21 @@ class Siamese(object):
             #---------------------------------------------------#
             #   获得预测结果，output输出为概率
             #---------------------------------------------------#
-            output = self.net([photo_1, photo_2])[0]
-            output = torch.nn.Sigmoid()(output)
+            output1, output2 = self.net(photo_1, photo_2)
+            similarity = compute_similarity(output1, output2)
 
         plt.subplot(1, 2, 1)
         plt.imshow(np.array(image_1))
 
         plt.subplot(1, 2, 2)
         plt.imshow(np.array(image_2))
-        plt.text(-12, -12, 'Similarity:%.3f' % output, ha='center', va= 'bottom',fontsize=11)
+        plt.text(-12, -12, 'Similarity:%.3f' % similarity, ha='center', va= 'bottom',fontsize=11)
         plt.show()
-        return output
+        return similarity
+
+def normalize(x):
+    return F.normalize(x, p=2, dim=1)
+def compute_similarity(out1, out2):
+    distance = F.pairwise_distance(normalize(out1), normalize(out2))
+    similarity = 1.0 - distance.item()
+    return similarity

@@ -3,6 +3,9 @@ import torch.nn as nn
 
 from nets.ResNet import resnet50
 from nets.vgg import VGG16
+import torchvision.models as models
+import torch.nn.functional as F
+
 
 
 USE_RESNET=True
@@ -20,39 +23,19 @@ def get_img_output_length(width, height):
 class Siamese(nn.Module):
     def __init__(self, input_shape, pretrained=False, useResnet=USE_RESNET):
         super(Siamese, self).__init__()
-        self.useResnet = useResnet
-
-        self.cnn1 = nn.Sequential(
-            nn.Conv2d(3, 96, kernel_size=11, stride=4),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(3, stride=2),
-
-            nn.Conv2d(96, 256, kernel_size=5, stride=1),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(2, stride=2),
-
-            nn.Conv2d(256, 384, kernel_size=3, stride=1),
-            nn.ReLU(inplace=True)
-        )
-
-        # Setting up the Fully Connected Layers
-        self.fc1 = nn.Sequential(
-            nn.Linear(384, 1024),
-            nn.ReLU(inplace=True),
-
-            nn.Linear(1024, 256),
-            nn.ReLU(inplace=True),
-
-            nn.Linear(256, 2)
-        )
+        self.resnet = models.resnet50(pretrained=True)
+        self.fc1 = nn.Linear(1000, 512)
+        self.fc2 = nn.Linear(512, 256)
+        self.fc3 = nn.Linear(256, 2)
 
     def forward_once(self, x):
-        output = self.cnn1(x)
-        output = output.view(output.size()[0], -1)
-        output = self.fc1(output)
-        return output
+        x = self.resnet(x)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
 
-    def forward(self, input1, input2):
-        output1 = self.forward_once(input1)
-        output2 = self.forward_once(input2)
-        return output1, output2
+    def forward(self, img1, img2):
+        out1 = self.forward_once(img1)
+        out2 = self.forward_once(img2)
+        return out1, out2

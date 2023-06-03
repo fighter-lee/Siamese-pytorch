@@ -1,9 +1,12 @@
+import os
+
 import numpy as np
 from PIL import Image
 
 from siamese import Siamese
 
 if __name__ == "__main__":
+    os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
     model = Siamese()
         
     while True:
