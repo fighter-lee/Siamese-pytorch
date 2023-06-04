@@ -17,6 +17,7 @@ from utils.utils import (download_weights, get_lr_scheduler, load_dataset,
 from utils.utils_fit import fit_one_epoch
 
 if __name__ == "__main__":
+    os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
     #----------------------------------------------------#
     #   是否使用Cuda
     #   没有GPU可以设置成False
@@ -113,7 +114,7 @@ if __name__ == "__main__":
     #   batch_size      每次输入的图片数量
     #------------------------------------------------------#
     Init_Epoch          = 0
-    Epoch               = 50
+    Epoch               = 10
     batch_size          = 32
     
     #------------------------------------------------------------------#
