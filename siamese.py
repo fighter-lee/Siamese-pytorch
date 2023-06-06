@@ -4,6 +4,7 @@ import torch
 import torch.backends.cudnn as cudnn
 from PIL import Image
 
+from learn.demo1.siamese1 import test_image_distance
 from nets.siamese import Siamese as siamese
 from utils.utils import letterbox_image, preprocess_input, cvtColor, show_config
 import torch.nn.functional as F
@@ -124,14 +125,15 @@ class Siamese(object):
             #   获得预测结果，output输出为概率
             #---------------------------------------------------#
             output1, output2 = self.net(photo_1, photo_2)
-            similarity = compute_similarity(output1, output2)
+            # similarity = compute_similarity(output1, output2)
+            similarity, distance = test_image_distance(output1, output2)
 
         plt.subplot(1, 2, 1)
         plt.imshow(np.array(image_1))
 
         plt.subplot(1, 2, 2)
         plt.imshow(np.array(image_2))
-        plt.text(-12, -12, 'Similarity:%.3f' % similarity, ha='center', va= 'bottom',fontsize=11)
+        plt.text(-12, -12, 'Similarity:%.3f , Distance:%.3f' % (similarity, distance), ha='center', va= 'bottom',fontsize=11)
         plt.show()
         return similarity
 

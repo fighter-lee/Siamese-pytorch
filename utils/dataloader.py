@@ -125,9 +125,9 @@ class SiameseDataset(Dataset):
             pairs_of_images[1][pair, :, :, :] = image
                 
             if (pair + 1) % 2 == 0:
-                labels[pair] = 0
-            else:
                 labels[pair] = 1
+            else:
+                labels[pair] = 0
 
         #-------------------------------------------#
         #   随机的排列组合
