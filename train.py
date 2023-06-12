@@ -9,7 +9,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from nets.ContrastiveLoss import ContrastiveLoss
-from nets.siamese import Siamese
+from nets.siamese import SiameseNetwork
 from utils.callbacks import LossHistory
 from utils.dataloader import SiameseDataset, dataset_collate
 from utils.utils import (download_weights, get_lr_scheduler, load_dataset,
@@ -54,7 +54,7 @@ if __name__ == "__main__":
     #----------------------------------------------------#
     #   输入图像的大小，默认为105,105,3
     #----------------------------------------------------#
-    input_shape     = [96, 96]
+    input_shape     = [32, 32]
 
     use_module = "vgg16"
     # use_module = "resnet50"
@@ -118,7 +118,7 @@ if __name__ == "__main__":
     #------------------------------------------------------#
     Init_Epoch          = 0
     Epoch               = 10
-    batch_size          = 32
+    batch_size          = 64
     
     #------------------------------------------------------------------#
     #   其它训练参数：学习率、优化器、学习率下降有关
@@ -186,7 +186,7 @@ if __name__ == "__main__":
         else:
             download_weights(use_module)
 
-    model = Siamese(input_shape, pretrained)
+    model = SiameseNetwork()
     if model_path != '':
         #------------------------------------------------------#
         #   权值文件请看README，百度网盘下载

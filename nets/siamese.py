@@ -8,34 +8,66 @@ import torch.nn.functional as F
 
 
 
-USE_RESNET=True
-def get_img_output_length(width, height):
-    def get_output_length(input_length):
-        # input_length += 6
-        filter_sizes = [2, 2, 2, 2, 2]
-        padding = [0, 0, 0, 0, 0]
-        stride = 2
-        for i in range(5):
-            input_length = (input_length + 2 * padding[i] - filter_sizes[i]) // stride + 1
-        return input_length
-    return get_output_length(width) * get_output_length(height) 
-    
-class Siamese(nn.Module):
-    def __init__(self, input_shape, pretrained=False, useResnet=USE_RESNET):
-        super(Siamese, self).__init__()
-        self.resnet = models.resnet50(pretrained=True)
-        self.fc1 = nn.Linear(1000, 512)
-        self.fc2 = nn.Linear(512, 256)
-        self.fc3 = nn.Linear(256, 2)
+class ResidualBlock(nn.Module):
+    def __init__(self, inchannel, outchannel, stride=1):
+        super(ResidualBlock, self).__init__()
+        self.left = nn.Sequential(
+            nn.Conv2d(inchannel, outchannel, kernel_size=3, stride=stride, padding=1, bias=False),
+            nn.BatchNorm2d(outchannel),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(outchannel, outchannel, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.BatchNorm2d(outchannel)
+        )
+        self.shortcut = nn.Sequential()
+        if stride != 1 or inchannel != outchannel:
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(inchannel, outchannel, kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(outchannel)
+            )
 
+    def forward(self, x):
+        out = self.left(x)
+        out += self.shortcut(x)
+        out = F.relu(out)
+        return out
+
+class SiameseNetwork(nn.Module):
+    def __init__(self):
+        super(SiameseNetwork, self).__init__()
+        self.inchannel = 64
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False),#-->（batch,64,32,32）
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+        )
+        self.layer1 = self.make_layer(ResidualBlock, 64, 2, stride=1)#-->（batch,64,32,32）
+        self.layer2 = self.make_layer(ResidualBlock, 128, 2, stride=2)#-->（batch,128,16,16）
+        self.layer3 = self.make_layer(ResidualBlock, 256, 2, stride=2)#-->（batch,256,8,8）
+        self.layer4 = self.make_layer(ResidualBlock, 512, 2, stride=2)#-->（batch,512,4,4）
+        self.fc = nn.Linear(512,32)#-->（batch,32）
+
+    def make_layer(self, block, channels, num_blocks, stride):
+        strides = [stride] + [1] * (num_blocks - 1)  # strides=[1,1]
+        layers = []
+        for stride in strides:
+            layers.append(block(self.inchannel, channels, stride))
+            self.inchannel = channels
+        return nn.Sequential(*layers)
+
+    # -->（batch,3,32,32）
     def forward_once(self, x):
-        x = self.resnet(x)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-        return x
+        out = self.conv1(x)     #-->（batch,64,32,32）
+        out = self.layer1(out)  #-->（batch,64,32,32）
+        out = self.layer2(out)  #-->（batch,128,16,16）
+        out = self.layer3(out)  #-->（batch,256,8,8）
+        out = self.layer4(out)  #-->（batch,512,4,4）
+        out = F.avg_pool2d(out, 4)     #-->（batch,512,1,1）
+        out = out.view(out.size(0), -1) #-->（batch,512*1*1）
+        out = self.fc(out)      #-->（batch,32）
+        out = F.log_softmax(out, dim=1)
+        return out
 
-    def forward(self, img1, img2):
-        out1 = self.forward_once(img1)
-        out2 = self.forward_once(img2)
-        return out1, out2
+    def forward(self, input1, input2):
+        output1 = self.forward_once(input1)
+        output2 = self.forward_once(input2)
+        return output1, output2

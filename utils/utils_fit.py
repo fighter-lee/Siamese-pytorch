@@ -13,9 +13,10 @@ from .utils import get_lr
 def fit_one_epoch(model_train, model, loss, loss_history, optimizer, epoch, epoch_step, epoch_step_val, gen, genval, Epoch, cuda, fp16, scaler, save_period, save_dir, local_rank=0):
     total_loss      = 0
     total_accuracy  = 0
-
+    total = 0
     val_loss            = 0
     val_total_accuracy  = 0
+    val_total = 0
     
     if local_rank == 0:
         print('Start Train')
@@ -54,15 +55,23 @@ def fit_one_epoch(model_train, model, loss, loss_history, optimizer, epoch, epoc
             scaler.update()
 
         with torch.no_grad():
-            predict = (F.pairwise_distance(output1, output2, p=2) < 0.5).long()
-            # accuracy = (predict == label).sum()
+            distance = F.pairwise_distance(output1, output2)
+            zero_labels = label == 0  # 找出labels中为0的位置
+            predict_for_zero_labels = distance[zero_labels.squeeze()]  # 找出predict中对应位置的浮点类型数
+            less_than_1_15 = predict_for_zero_labels < 1.15  # 找出浮点类型数小于1.15的位置
+            accuracy = less_than_1_15.sum().item()
+
+            one_labels = label == 1  # 找出labels中为1的位置
+            predict_for_one_labels = distance[one_labels.squeeze()]  # 找出predict中对应位置的浮点类型数
+            greater_than_1_15 = predict_for_one_labels >= 1.15  # 找出浮点类型数大于1.15的位置
+            accuracy += greater_than_1_15.sum().item()  # 计算浮点类型数大于1.15的数量
 
         total_loss      += loss_contrastive.item()
-        # total_accuracy  += accuracy.item()
-
+        total_accuracy  += accuracy
+        total += label.size()[0]
         if local_rank == 0:
             pbar.set_postfix(**{'total_loss': total_loss / (iteration + 1), 
-                                # 'acc'       : total_accuracy / (iteration + 1),
+                                'acc'       : total_accuracy / total,
                                 'lr'        : get_lr(optimizer)})
             pbar.update(1)
     if local_rank == 0:
@@ -71,6 +80,8 @@ def fit_one_epoch(model_train, model, loss, loss_history, optimizer, epoch, epoc
         print('Start Validation')
         pbar = tqdm(total=epoch_step_val, desc=f'Epoch {epoch + 1}/{Epoch}',postfix=dict,mininterval=0.3)
     model_train.eval()
+
+
     for iteration,  (img, label) in enumerate(genval):
         if iteration >= epoch_step_val:
             break
@@ -86,15 +97,23 @@ def fit_one_epoch(model_train, model, loss, loss_history, optimizer, epoch, epoc
             output1, output2 = model_train(img0, img1)
             output  = loss(output1, output2, label)
 
-            # equal       = torch.eq(torch.round(nn.Sigmoid()(outputs)), targetsdddd)
-            # accuracy    = torch.mean(equal.float())
+            distance = F.pairwise_distance(output1, output2)
+            zero_labels = label == 0  # 找出labels中为0的位置
+            predict_for_zero_labels = distance[zero_labels.squeeze()]  # 找出predict中对应位置的浮点类型数
+            less_than_1_15 = predict_for_zero_labels < 1.15  # 找出浮点类型数小于1.15的位置
+            accuracy = less_than_1_15.sum().item()
+
+            one_labels = label == 1  # 找出labels中为1的位置
+            predict_for_one_labels = distance[one_labels.squeeze()]  # 找出predict中对应位置的浮点类型数
+            greater_than_1_15 = predict_for_one_labels > 1.15  # 找出浮点类型数大于1.15的位置
+            accuracy += greater_than_1_15.sum().item()  # 计算浮点类型数大于1.15的数量
 
         val_loss            += output.item()
-        # val_total_accuracy  += accuracy.item()
-
+        val_total_accuracy  += accuracy
+        val_total += label.size()[0]
         if local_rank == 0:
             pbar.set_postfix(**{'val_loss'  : val_loss / (iteration + 1), 
-                                # 'acc'       : val_total_accuracy / (iteration + 1)
+                                'acc'       : val_total_accuracy / val_total
                                 })
             pbar.update(1)
                 
@@ -117,9 +136,12 @@ def fit_one_epoch(model_train, model, loss, loss_history, optimizer, epoch, epoc
             
         torch.save(model.state_dict(), os.path.join(save_dir, "last_epoch_weights.pth"))
 
-def calculate_accuracy(output1, output2, label, threshold=0.5):
-    euclidean_distance = F.pairwise_distance(output1, output2)
-    predictions = (euclidean_distance < threshold).float()  # 阈值判定
-    correct = (predictions == label).float().sum()  # 计算匹配成功的样本对数量
-    accuracy = correct / label.shape[0]  # 计算成功率百分比
-    return accuracy  # 返回成功率百分比（转换为标量）
+def test_image_distance(img_1, img_2, net):
+    img_1 = img_1.type(torch.FloatTensor)
+    img_2 = img_2.type(torch.FloatTensor)
+    output1, output2 = net(img_1, img_2)
+    euclidean_distance = F.pairwise_distance(output1, output2).item()
+    def normal_distribution(x, mean, sigma):
+        return np.exp(-1 * ((x - mean) ** 2) / (2 * (sigma ** 2))) / (math.sqrt(2 * np.pi) * sigma)
+    similarity = normal_distribution(euclidean_distance, 0, 1) / normal_distribution(0, 0, 1)
+    return similarity

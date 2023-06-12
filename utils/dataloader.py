@@ -125,8 +125,10 @@ class SiameseDataset(Dataset):
             pairs_of_images[1][pair, :, :, :] = image
                 
             if (pair + 1) % 2 == 0:
+                # 第1个，为不相等类型的图片，标签为1
                 labels[pair] = 1
             else:
+                # 第0个，为相等类型的图片，标签为0
                 labels[pair] = 0
 
         #-------------------------------------------#

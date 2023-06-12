@@ -19,6 +19,7 @@ class getDataset(Dataset):
         self.relables = relables
         self.transform = transform
     def __getitem__(self, index):
+        # 随机找第i图，再随机抽取0和1，来判断此次是否找相同lab还是不同lab
         list = []
         for i in range(len(self.getDataset.imgs)):
             list.append(self.getDataset.imgs[i][0])
@@ -54,6 +55,7 @@ class getDataset(Dataset):
              # print(img0.shape)
              img1 = self.transform(img1)
 
+        # 标签不相等为1 ， 相等为0
         if self.relables:
             return img0, img1, torch.from_numpy(np.array([int(labels[rand_i] != labels[rand_j])], dtype=np.float32)), \
                    labels[rand_i], labels[rand_j]
@@ -71,7 +73,7 @@ def getDataloder(data_dir = "./images_background_2/train",batch_size = 64):
     dataset = getDataset(train_dataset,transform=transform_train)
     train_dataloader = DataLoader(dataset,shuffle=True,batch_size = batch_size)
     return train_dataloader
-def getTestDataloder(data_dir = "./images_background_2/test",batch_size = 1):
+def getTestDataloder(data_dir = "./images_background_2/test",batch_size = 64):
     test_dataset = torchvision.datasets.ImageFolder(root = data_dir)
     dataset = getDataset(test_dataset,relables = True,transform=transform_train)
     test_dataloader = DataLoader(dataset,shuffle=True,batch_size = batch_size)

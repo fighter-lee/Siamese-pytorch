@@ -4,10 +4,11 @@ import torch
 import torch.backends.cudnn as cudnn
 from PIL import Image
 
-from learn.demo1.siamese1 import test_image_distance
-from nets.siamese import Siamese as siamese
+from learn.demo2.siamese1 import test_image_distance
+from nets.siamese import SiameseNetwork as siamese
 from utils.utils import letterbox_image, preprocess_input, cvtColor, show_config
 import torch.nn.functional as F
+from torchvision import transforms
 
 
 #---------------------------------------------------#
@@ -23,7 +24,7 @@ class Siamese(object):
         #-----------------------------------------------------#
         #   输入图片的大小。
         #-----------------------------------------------------#
-        "input_shape"       : [105, 105],
+        "input_shape"       : [32, 32],
         #--------------------------------------------------------------------#
         #   该变量用于控制是否使用letterbox_image对输入图像进行不失真的resize
         #   否则对图像进行CenterCrop
@@ -63,7 +64,7 @@ class Siamese(object):
         #---------------------------#
         print('Loading weights into state dict...')
         device  = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        model   = siamese(self.input_shape)
+        model   = siamese()
         model.load_state_dict(torch.load(self.model_path, map_location=device))
         self.net = model.eval()
         print('{} model loaded.'.format(self.model_path))
@@ -107,24 +108,30 @@ class Siamese(object):
         #---------------------------------------------------------#
         #   归一化+添加上batch_size维度
         #---------------------------------------------------------#
-        photo_1  = preprocess_input(np.array(image_1, np.float32))
-        photo_2  = preprocess_input(np.array(image_2, np.float32))
+        # photo_1  = preprocess_input(np.array(image_1, np.float32))
+        # photo_2  = preprocess_input(np.array(image_2, np.float32))
 
         with torch.no_grad():
             #---------------------------------------------------#
             #   添加上batch维度，才可以放入网络中预测
             #---------------------------------------------------#
-            photo_1 = torch.from_numpy(np.expand_dims(np.transpose(photo_1, (2, 0, 1)), 0)).type(torch.FloatTensor)
-            photo_2 = torch.from_numpy(np.expand_dims(np.transpose(photo_2, (2, 0, 1)), 0)).type(torch.FloatTensor)
-            
-            if self.cuda:
-                photo_1 = photo_1.cuda()
-                photo_2 = photo_2.cuda()
+            # photo_1 = torch.from_numpy(np.expand_dims(np.transpose(photo_1, (2, 0, 1)), 0)).type(torch.FloatTensor)
+            # photo_2 = torch.from_numpy(np.expand_dims(np.transpose(photo_2, (2, 0, 1)), 0)).type(torch.FloatTensor)
+            #
+            # if self.cuda:
+            #     photo_1 = photo_1.cuda()
+            #     photo_2 = photo_2.cuda()
+
+            transform = transforms.Compose([transforms.Resize(size=(32, 32)),
+                                            transforms.RandomHorizontalFlip(),
+                                            transforms.ToTensor()])
+            photo_1 = transform(image_1)
+            photo_2 = transform(image_2)
                 
             #---------------------------------------------------#
             #   获得预测结果，output输出为概率
             #---------------------------------------------------#
-            output1, output2 = self.net(photo_1, photo_2)
+            output1, output2 = self.net(photo_1.unsqueeze(0), photo_2.unsqueeze(0))
             # similarity = compute_similarity(output1, output2)
             similarity, distance = test_image_distance(output1, output2)
 
