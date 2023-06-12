@@ -124,7 +124,6 @@ class Siamese(object):
             #     photo_1 = photo_1.cuda()
             #     photo_2 = photo_2.cuda()
             transform = transforms.Compose([transforms.Resize(size=(32, 32)),
-                                                  transforms.RandomHorizontalFlip(),
                                                   transforms.ToTensor()])
             photo_1 = transform(image_1)
             photo_2 = transform(image_2)

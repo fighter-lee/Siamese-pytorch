@@ -5,7 +5,7 @@ from loadData import getTestDataloder
 import math
 
 
-def make_test(net,test_dir = 'images_background_2/test'):
+def make_test(net,test_dir = 'dataset/test'):
     test_dataloader = getTestDataloder()
     dataiter = iter(test_dataloader)
 

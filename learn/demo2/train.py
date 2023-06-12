@@ -3,7 +3,7 @@ import os
 import torch
 
 from learn.demo2.config import save_dir, input_shape
-from learn.demo2.myutils import getAccuracy
+from learn.demo2.myutils import getAccuracy, showImgArray
 from loss import ContrastiveLoss
 from net import SiameseNetwork
 import torch.optim as optim
@@ -53,6 +53,7 @@ if __name__ == '__main__':
             # img0,img1  (batch, 3, 32, 32)
             # label (batch)
             img_1, img_2, label = data[0].type(torch.FloatTensor), data[1].type(torch.FloatTensor), data[2].type(torch.FloatTensor)
+            # showImgArray(img_1, img_2, label)
             optimizer.zero_grad()
             output_1, output_2 = net(img_1, img_2)
             loss = loss_func(output_1, output_2, label)
