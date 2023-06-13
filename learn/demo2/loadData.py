@@ -22,7 +22,7 @@ class getDataset(Dataset):
         self.transform = transform
         self.random = random
 
-        self.resize_crop = RandomResizedCrop(input_shape)
+        self.resize_crop = RandomResizedCrop(input_shape, scale=(0.6, 1.0))
         self.policy = ImageNetPolicy()
 
         self.resize = Resize(input_shape[0] if input_shape[0] == input_shape[1] else input_shape)
@@ -99,7 +99,7 @@ class getDataset(Dataset):
         image = self.policy(image)
         return image
 
-transform_train = transforms.Compose([transforms.Resize(size=(32, 32)),
+transform_train = transforms.Compose([transforms.Resize(size=(input_shape)),
                                               transforms.ToTensor()])
 def getDataloder(data_dir = "./dataset/train",batch_size = 64):
     train_dataset = torchvision.datasets.ImageFolder(root = data_dir)

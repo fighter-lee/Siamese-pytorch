@@ -8,6 +8,7 @@ from PIL import Image
 from torchvision.transforms import ToTensor
 from torchvision import transforms
 
+from learn.demo2.config import input_shape
 from learn.demo2.net import SiameseNetwork
 from utils.utils import letterbox_image, preprocess_input, cvtColor, show_config
 import torch.nn.functional as F
@@ -123,7 +124,7 @@ class Siamese(object):
             # if self.cuda:
             #     photo_1 = photo_1.cuda()
             #     photo_2 = photo_2.cuda()
-            transform = transforms.Compose([transforms.Resize(size=(32, 32)),
+            transform = transforms.Compose([transforms.Resize(size=(input_shape)),
                                                   transforms.ToTensor()])
             photo_1 = transform(image_1)
             photo_2 = transform(image_2)

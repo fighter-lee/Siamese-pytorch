@@ -1,6 +1,9 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
+from learn.demo2.spp import SPP
+
+
 class ResidualBlock(nn.Module):
     def __init__(self, inchannel, outchannel, stride=1):
         super(ResidualBlock, self).__init__()
@@ -37,7 +40,8 @@ class SiameseNetwork(nn.Module):
         self.layer2 = self.make_layer(ResidualBlock, 128, 2, stride=2)#-->（batch,128,16,16）
         self.layer3 = self.make_layer(ResidualBlock, 256, 2, stride=2)#-->（batch,256,8,8）
         self.layer4 = self.make_layer(ResidualBlock, 512, 2, stride=2)#-->（batch,512,4,4）
-        self.fc = nn.Linear(512,32)#-->（batch,32）
+        self.spp = SPP(num_levels=2, pool_type='max_pool')
+        self.fc = nn.Linear(2560,32)#-->（batch,32）
 
     def make_layer(self, block, channels, num_blocks, stride):
         strides = [stride] + [1] * (num_blocks - 1)  # strides=[1,1]
@@ -55,7 +59,8 @@ class SiameseNetwork(nn.Module):
         out = self.layer3(out)  #-->（batch,256,8,8）
         out = self.layer4(out)  #-->（batch,512,4,4）
         out = F.avg_pool2d(out, 4)     #-->（batch,512,1,1）
-        out = out.view(out.size(0), -1) #-->（batch,512*1*1）
+        out = self.spp(out)
+        # out = out.view(out.size(0), -1) #-->（batch,512*1*1）
         out = self.fc(out)      #-->（batch,32）
         out = F.log_softmax(out, dim=1)
         return out
