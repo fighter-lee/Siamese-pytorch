@@ -2,25 +2,23 @@ import os
 
 import torch
 
-from learn.demo2.config import save_dir, input_shape
+from learn.demo2.config import save_dir, input_shape, getModel
 from learn.demo2.myutils import getAccuracy, showImgArray
 from loss import ContrastiveLoss
-from net import SiameseNetwork
 import torch.optim as optim
 from loadData import getDataloder, getTestDataloder
-from test import make_test
 from tqdm import tqdm
 
 from utils.callbacks import LossHistory
 from utils.utils import get_lr_scheduler, set_optimizer_lr
 
-train_number_epochs = 10
+train_number_epochs = 20
 train_batch_size = 64
 save_period = 10
 dataloader = getDataloder(batch_size=train_batch_size)
 testdataloder = getTestDataloder(batch_size=train_batch_size)
 
-net = SiameseNetwork()
+net = getModel()
 loss_func = ContrastiveLoss()
 
 # ---------------------------------------#

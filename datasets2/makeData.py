@@ -4,9 +4,10 @@ import random
 import shutil
 
 if __name__ == '__main__':
-    dataset_dir = 'icon-other'
+    dataset_dir = 'Icons-50'
     train_dir = '../learn/demo2/dataset/train'
     test_dir = '../learn/demo2/dataset/test'
+    type_suff = '-2'
 
     # 遍历每个类型的图片文件夹
     for type_dir in os.listdir(dataset_dir):
@@ -27,8 +28,8 @@ if __name__ == '__main__':
 
         # 获取目标文件夹路径
         dataset_type_dir = os.path.join(dataset_dir, type_dir)
-        train_type_dir = os.path.join(train_dir, type_dir)
-        test_type_dir = os.path.join(test_dir, type_dir)
+        train_type_dir = os.path.join(train_dir, type_dir+type_suff)
+        test_type_dir = os.path.join(test_dir, type_dir+type_suff)
 
         # 如果目标文件夹不存在，就创建它
         if not os.path.exists(dataset_type_dir):
@@ -41,9 +42,9 @@ if __name__ == '__main__':
         # 复制训练集和测试集到相应的目录中
         for img_name in train_list:
             img_path = os.path.join(type_path, img_name)
-            shutil.copy(img_path, os.path.join(train_dir, type_dir, img_name))
+            shutil.copy(img_path, os.path.join(train_type_dir, img_name))
 
         for img_name in test_list:
             img_path = os.path.join(type_path, img_name)
-            shutil.copy(img_path, os.path.join(test_dir, type_dir, img_name))
+            shutil.copy(img_path, os.path.join(test_type_dir, img_name))
 

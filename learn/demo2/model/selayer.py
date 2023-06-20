@@ -1,6 +1,6 @@
-import torch
-import torch.nn as nn
-import torchvision.models as models
+# SE模块在 这里称为 SE layer
+from torch import nn
+
 
 class SELayer(nn.Module):
     def __init__(self, channel, reduction=16):

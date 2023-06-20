@@ -5,12 +5,10 @@ import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 from PIL import Image
-from torchvision.transforms import ToTensor
 from torchvision import transforms
 
-from learn.demo2.config import input_shape
-from learn.demo2.net import SiameseNetwork
-from utils.utils import letterbox_image, preprocess_input, cvtColor, show_config
+from learn.demo2.config import input_shape, getModel
+from utils.utils import cvtColor, show_config
 import torch.nn.functional as F
 
 
@@ -23,11 +21,11 @@ class Siamese(object):
         #   使用自己训练好的模型进行预测一定要修改model_path
         #   model_path指向logs文件夹下的权值文件
         #-----------------------------------------------------#
-        "model_path"        : 'model.pth',
+        "model_path"        : 'logs/best_epoch_weights.pth',
         #-----------------------------------------------------#
         #   输入图片的大小。
         #-----------------------------------------------------#
-        "input_shape"       : [105, 105],
+        "input_shape"       : input_shape,
         #--------------------------------------------------------------------#
         #   该变量用于控制是否使用letterbox_image对输入图像进行不失真的resize
         #   否则对图像进行CenterCrop
@@ -67,7 +65,7 @@ class Siamese(object):
         #---------------------------#
         print('Loading weights into state dict...')
         device  = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        model   = SiameseNetwork()
+        model   = getModel()
         model.load_state_dict(torch.load(self.model_path, map_location=device))
         self.net = model.eval()
         print('{} model loaded.'.format(self.model_path))
