@@ -8,7 +8,7 @@ import torchvision.datasets
 from torchvision import transforms
 import torch
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from learn.demo2.config import input_shape
 from utils.utils import cvtColor
@@ -112,3 +112,4 @@ def getTestDataloder(data_dir = "./images_background_2/test",batch_size = 64):
     test_dataloader = DataLoader(dataset,shuffle=True,batch_size = batch_size)
     # dataiter = iter(test_dataloader)
     return test_dataloader
+

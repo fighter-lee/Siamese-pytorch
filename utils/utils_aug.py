@@ -3,7 +3,8 @@ import random
 import math
 import warnings
 import numpy as np
-from PIL import Image, ImageEnhance, ImageOps
+import torch
+from PIL import Image, ImageEnhance, ImageOps, ImageDraw
 
 
 class ShearX(object):
@@ -98,6 +99,10 @@ class Invert(object):
     def __call__(self, x, magnitude):
         return ImageOps.invert(x)
 
+class BlackMask(object):
+    def __call__(self, x, magnitude):
+        return add_black_mask(x)
+
 
 class ImageNetPolicy(object):
     """ Randomly choose one of the best 24 Sub-policies on ImageNet.
@@ -140,7 +145,8 @@ class ImageNetPolicy(object):
             SubPolicy(0.6, "solarize", 5, 0.6, "autocontrast", 5, fillcolor),
             SubPolicy(0.6, "invert", 4, 1.0, "equalize", 8, fillcolor),
             SubPolicy(0.6, "color", 4, 1.0, "contrast", 8, fillcolor),
-            SubPolicy(0.8, "equalize", 8, 0.6, "equalize", 3, fillcolor)
+            SubPolicy(0.8, "equalize", 8, 0.6, "equalize", 3, fillcolor),
+            SubPolicy(0.8, "blackMask", 8, 0.2, "equalize", 3, fillcolor)
         ]
 
     def __call__(self, img):
@@ -166,7 +172,8 @@ class SubPolicy(object):
             "brightness": np.linspace(0.0, 0.9, 10),
             "autocontrast": [0] * 10,
             "equalize": [0] * 10,
-            "invert": [0] * 10
+            "invert": [0] * 10,
+            "blackMask": [0] * 10,
         }
 
         func = {
@@ -183,7 +190,8 @@ class SubPolicy(object):
             "brightness": Brightness(),
             "autocontrast": AutoContrast(),
             "equalize": Equalize(),
-            "invert": Invert()
+            "invert": Invert(),
+            "blackMask": BlackMask()
         }
 
         self.p1 = p1
@@ -199,6 +207,17 @@ class SubPolicy(object):
         if random.random() < self.p2:
             img = self.operation2(img, self.magnitude2)
         return img
+
+def add_black_mask(img):
+    # 将PIL Image转换为ImageDraw对象
+    draw = ImageDraw.Draw(img)
+    # 获取图像的宽和高
+    w, h = img.size
+    # 在图像右下角随机位置添加黑色蒙层
+    x = torch.randint(w // 2, w, (1,))
+    y = torch.randint(h // 2, h, (1,))
+    draw.rectangle((x, y, w, h), fill=(0, 0, 0))
+    return img
 
 def crop(img, i, j, h, w):
     """Crop the given PIL Image.

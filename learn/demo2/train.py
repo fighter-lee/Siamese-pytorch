@@ -72,7 +72,7 @@ if __name__ == '__main__':
             # label (batch)
             img_1, img_2, label = data[0].type(torch.FloatTensor), data[1].type(torch.FloatTensor), data[2].type(
                 torch.FloatTensor)
-            # showImgArray(img_1, img_2, label)
+            showImgArray(img_1, img_2, label)
             optimizer.zero_grad()
             output_1, output_2 = net(img_1, img_2)
             loss = loss_func(output_1, output_2, label)
